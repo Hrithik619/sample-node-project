@@ -13,19 +13,17 @@ jobs:
     - name: 🛎️ Checkout Code
       uses: actions/checkout@v3
 
-    - name: 🚀 Copy Code to EC2
-      uses: appleboy/scp-action@master
+    - name: 🔐 Set up SSH Agent
+      uses: webfactory/ssh-agent@v0.5.3
       with:
-        host: ${{ secrets.EC2_HOST }}
-        username: ${{ secrets.EC2_USER }}
-        key: ${{ secrets.EC2_KEY }}
-        source: "."
-        target: "/home/ubuntu/pm2-testing/sample-node-project"
-        strip_components: 1
-        overwrite: true
-        debug: true
+        ssh-private-key: ${{ secrets.EC2_KEY }}
 
-    - name: 🐳 Build & Run Docker on EC2
+    - name: ✅ Add EC2 Host to known_hosts
+      run: |
+        mkdir -p ~/.ssh
+        ssh-keyscan -H ${{ secrets.EC2_HOST }} >> ~/.ssh/known_hosts
+
+    - name: 🐳 Docker Build & Run on EC2
       uses: appleboy/ssh-action@master
       with:
         host: ${{ secrets.EC2_HOST }}
@@ -33,7 +31,9 @@ jobs:
         key: ${{ secrets.EC2_KEY }}
         script: |
           cd /home/ubuntu/pm2-testing/sample-node-project
-          docker rm -f node-container || true
-          docker build -t node-app .
-          docker run -d -p 3005:3005 --name node-container node-app
-          docker ps
+          git pull origin master || true
+          sudo docker stop node-container || true
+          sudo docker rm node-container || true
+          sudo docker build -t node-app .
+          sudo docker run -d -p 3005:3005 --name node-container node-app
+          sudo docker ps
