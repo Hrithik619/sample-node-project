@@ -23,6 +23,15 @@ jobs:
           mkdir -p ~/.ssh
           ssh-keyscan -H ${{ secrets.EC2_HOST }} >> ~/.ssh/known_hosts
 
+      - name: 🛑 Kill any process on port 3005
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USER }}
+          key: ${{ secrets.EC2_KEY }}
+          script: |
+            sudo fuser -k 3005/tcp || true
+
       - name: ▶️ Start PM2 on EC2
         uses: appleboy/ssh-action@master
         with:
@@ -30,7 +39,6 @@ jobs:
           username: ${{ secrets.EC2_USER }}
           key: ${{ secrets.EC2_KEY }}
           script: |
-            ls -la /home/ubuntu/pm2-testing/sample-node-project
             cd /home/ubuntu/pm2-testing/sample-node-project
             sudo npm install
             sudo pm2 delete testing || true
