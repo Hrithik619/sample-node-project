@@ -1,24 +1,26 @@
-name: 🔁 Restart PM2 Only
+name: 🔁 PM2 Restart Only
 
 on:
-  workflow_dispatch:  # Manually triggered via GitHub UI
+  push:
+    branches:
+      - master
 
 jobs:
-  pm2:
+  pm2-restart:
     runs-on: ubuntu-latest
 
     steps:
-      - name: 🔐 Set up SSH Agent
+      - name: 🔐 Set up SSH agent
         uses: webfactory/ssh-agent@v0.5.3
         with:
           ssh-private-key: ${{ secrets.EC2_KEY }}
 
-      - name: 📁 Add EC2 to known_hosts
+      - name: ✅ Add EC2 host to known_hosts
         run: |
           mkdir -p ~/.ssh
           ssh-keyscan -H ${{ secrets.EC2_HOST }} >> ~/.ssh/known_hosts
 
-      - name: ▶️ Restart PM2 on EC2
+      - name: ▶️ Restart PM2 App on EC2
         run: |
           ssh ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} << 'EOF'
             cd /home/${{ secrets.EC2_USER }}/pm2-testing/sample-node-project
