@@ -1,38 +1,39 @@
-name: Deploy Code to EC2
- 
+name: 🚀 Deploy Code to EC2
+
 on:
   push:
     branches:
       - master
- 
+
 jobs:
   deploy:
+    name: Deploy to EC2
     runs-on: ubuntu-latest
- 
+
     steps:
-    - name: 🛎️ Checkout Code
-      uses: actions/checkout@v3
- 
-    - name: 🚀 Deploy Code to EC2
-      uses: appleboy/scp-action@master
-      with:
-        host: ${{ secrets.EC2_HOST }}
-        username: ${{ secrets.EC2_USER }}
-        key: ${{ secrets.EC2_KEY }}
-        source: .
-        target: "/home/ubuntu"
-        debug: true
- 
-    - name: ✅ Verify Deployment
-      uses: appleboy/ssh-action@master
-      with:
-        host: ${{ secrets.EC2_HOST }}
-        username: ${{ secrets.EC2_USER }}
-        key: ${{ secrets.EC2_KEY }}
-        script: |
-          ls -la /home/ubuntu/pm2-testing/sample-node-project
-          cd /home/ubuntu/pm2-testing/sample-node-project
-          sudo npm install
-          sudo pm2 delete testing
-          sudo pm2 start npm --name "testing" -- start
-          sudo pm2 list
+      - name: 📦 Checkout code
+        uses: actions/checkout@v3
+
+      - name: 📤 SCP to EC2
+        uses: appleboy/scp-action@master
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USER }}
+          key: ${{ secrets.EC2_KEY }}
+          source: "."
+          target: "/home/ubuntu/pm2-testing/sample-node-project"
+          strip_components: 1
+          overwrite: true
+
+      - name: 🚀 Run app via PM2
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USER }}
+          key: ${{ secrets.EC2_KEY }}
+          script: |
+            cd /home/ubuntu/pm2-testing/sample-node-project
+            npm install
+            pm2 delete testing || true
+            pm2 start server.js --name testing
+            pm2 save
