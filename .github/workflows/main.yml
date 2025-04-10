@@ -1,21 +1,38 @@
-name: 🔁 PM2 Restart Only
-
+name: Deploy Code to EC2
+ 
 on:
-  workflow_dispatch:
-
+  push:
+    branches:
+      - master
+ 
 jobs:
-  pm2-restart:
+  deploy:
     runs-on: ubuntu-latest
-
+ 
     steps:
-    - name: 🚀 Run PM2 Restart on EC2
+    - name: 🛎️ Checkout Code
+      uses: actions/checkout@v3
+ 
+    - name: 🚀 Deploy Code to EC2
+      uses: appleboy/scp-action@master
+      with:
+        host: ${{ secrets.EC2_HOST }}
+        username: ${{ secrets.EC2_USER }}
+        key: ${{ secrets.EC2_KEY }}
+        source: .
+        target: "/home/ubuntu"
+        debug: true
+ 
+    - name: ✅ Verify Deployment
       uses: appleboy/ssh-action@master
       with:
         host: ${{ secrets.EC2_HOST }}
         username: ${{ secrets.EC2_USER }}
         key: ${{ secrets.EC2_KEY }}
         script: |
+          ls -la /home/ubuntu/pm2-testing/sample-node-project
           cd /home/ubuntu/pm2-testing/sample-node-project
-          pm2 delete testing || true
-          pm2 start npm --name "testing" -- start
-          pm2 save
+          sudo npm install
+          sudo pm2 delete testing
+          sudo pm2 start npm --name "testing" -- start
+          sudo pm2 list
