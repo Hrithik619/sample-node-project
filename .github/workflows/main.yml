@@ -1,4 +1,4 @@
-name: 🚀 Deploy to EC2 Without Tar
+name: 🚀 Deploy to EC2
 
 on:
   push:
@@ -10,24 +10,29 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - name: 🛎️ Checkout Code
-      uses: actions/checkout@v3
+      - name: 🛎️ Checkout Code
+        uses: actions/checkout@v3
 
-    - name: 🔐 Set up SSH Agent
-      uses: webfactory/ssh-agent@v0.5.3
-      with:
-        ssh-private-key: ${{ secrets.EC2_KEY }}
+      - name: 🔐 Set up SSH Agent
+        uses: webfactory/ssh-agent@v0.5.3
+        with:
+          ssh-private-key: ${{ secrets.EC2_KEY }}
 
-    - name: 📤 Rsync Files to EC2 (No Tar)
-      run: |
-        rsync -avz --delete --exclude 'node_modules' ./ ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }}:/home/ubuntu/pm2-testing/sample-node-project
+      - name: 📁 Add EC2 to known_hosts
+        run: |
+          mkdir -p ~/.ssh
+          ssh-keyscan -H ${{ secrets.EC2_HOST }} >> ~/.ssh/known_hosts
 
-    - name: ▶️ Start PM2 Service on EC2
-      run: |
-        ssh ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} << 'EOF'
-          cd /home/ubuntu/pm2-testing/sample-node-project
-          npm install
-          pm2 delete testing || true
-          pm2 start npm --name "testing" -- start
-          pm2 save
-        EOF
+      - name: 📤 Rsync Files to EC2 (No Tar)
+        run: |
+          rsync -avz --delete --exclude 'node_modules' ./ ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }}:/home/${{ secrets.EC2_USER }}/pm2-testing/sample-node-project
+
+      - name: ▶️ Start PM2 Service on EC2
+        run: |
+          ssh ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} << 'EOF'
+            cd /home/${{ secrets.EC2_USER }}/pm2-testing/sample-node-project
+            npm install
+            pm2 delete testing || true
+            pm2 start npm --name "testing" -- start
+            pm2 save
+          EOF
