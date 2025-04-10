@@ -13,17 +13,14 @@ jobs:
     - name: 🛎️ Checkout Code
       uses: actions/checkout@v3
 
-    - name: 🚀 Deploy Code to EC2
-      uses: appleboy/scp-action@master
+    - name: 🔐 Set up SSH
+      uses: webfactory/ssh-agent@v0.5.3
       with:
-        host: ${{ secrets.EC2_HOST }}
-        username: ${{ secrets.EC2_USER }}
-        key: ${{ secrets.EC2_KEY }}
-        source: "."
-        target: "/home/ubuntu/pm2-testing/sample-node-project"
-        strip_components: 1
-        overwrite: true
-        debug: true
+        ssh-private-key: ${{ secrets.EC2_KEY }}
+
+    - name: 📁 Rsync Files to EC2
+      run: |
+        rsync -avz --delete --exclude 'node_modules' ./ ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }}:/home/ubuntu/pm2-testing/sample-node-project
 
     - name: ▶️ Start PM2 Service
       uses: appleboy/ssh-action@master
