@@ -23,7 +23,6 @@ jobs:
         target: "/home/ubuntu/pm2-testing/sample-node-project"
         strip_components: 1
         overwrite: true
-        tar_exec: tar --no-same-owner
         debug: true
 
     - name: ▶️ Start PM2 Service
