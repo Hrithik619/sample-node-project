@@ -1,38 +1,40 @@
-name: Deploy Code to EC2
- 
+name: Deploy to EC2
+
 on:
   push:
     branches:
       - master
- 
+
 jobs:
   deploy:
     runs-on: ubuntu-latest
- 
+
     steps:
     - name: 🛎️ Checkout Code
       uses: actions/checkout@v3
- 
+
     - name: 🚀 Deploy Code to EC2
       uses: appleboy/scp-action@master
       with:
         host: ${{ secrets.EC2_HOST }}
         username: ${{ secrets.EC2_USER }}
         key: ${{ secrets.EC2_KEY }}
-        source: .
-        target: "/home/ubuntu"
+        source: "."
+        target: "/home/ubuntu/pm2-testing/sample-node-project"
+        strip_components: 1
+        overwrite: true
+        tar_exec: tar --no-same-owner
         debug: true
- 
-    - name: ✅ Verify Deployment
+
+    - name: ▶️ Start PM2 Service
       uses: appleboy/ssh-action@master
       with:
         host: ${{ secrets.EC2_HOST }}
         username: ${{ secrets.EC2_USER }}
         key: ${{ secrets.EC2_KEY }}
         script: |
-          ls -la /home/ubuntu/pm2-testing/sample-node-project
           cd /home/ubuntu/pm2-testing/sample-node-project
-          sudo npm install
-          sudo pm2 delete testing
-          sudo pm2 start npm --name "testing" -- start
-          sudo pm2 list
+          npm install
+          pm2 delete testing || true
+          pm2 start npm --name "testing" -- start
+          pm2 save
