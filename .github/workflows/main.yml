@@ -1,47 +1,38 @@
-name: 🚀 Start PM2 on EC2
-
+name: Deploy Code to EC2
+ 
 on:
   push:
     branches:
       - master
-
+ 
 jobs:
-  pm2-start:
+  deploy:
     runs-on: ubuntu-latest
-
+ 
     steps:
-      - name: 🛎️ Checkout Code
-        uses: actions/checkout@v3
-
-      - name: 🔐 Set up SSH agent
-        uses: webfactory/ssh-agent@v0.5.3
-        with:
-          ssh-private-key: ${{ secrets.EC2_KEY }}
-
-      - name: ✅ Add EC2 host to known_hosts
-        run: |
-          mkdir -p ~/.ssh
-          ssh-keyscan -H ${{ secrets.EC2_HOST }} >> ~/.ssh/known_hosts
-
-      - name: 🛑 Kill any process on port 3005
-        uses: appleboy/ssh-action@master
-        with:
-          host: ${{ secrets.EC2_HOST }}
-          username: ${{ secrets.EC2_USER }}
-          key: ${{ secrets.EC2_KEY }}
-          script: |
-            sudo fuser -k 3005/tcp || true
-
-      - name: ▶️ Start PM2 on EC2
-        uses: appleboy/ssh-action@master
-        with:
-          host: ${{ secrets.EC2_HOST }}
-          username: ${{ secrets.EC2_USER }}
-          key: ${{ secrets.EC2_KEY }}
-          script: |
-            cd /home/ubuntu/pm2-testing/sample-node-project
-            sudo npm install
-            sudo pm2 delete testing || true
-            sudo pm2 start npm --name "testing" -- start
-            sudo pm2 save
-            sudo pm2 list
+    - name: 🛎️ Checkout Code
+      uses: actions/checkout@v3
+ 
+    - name: 🚀 Deploy Code to EC2
+      uses: appleboy/scp-action@master
+      with:
+        host: ${{ secrets.EC2_HOST }}
+        username: ${{ secrets.EC2_USER }}
+        key: ${{ secrets.EC2_KEY }}
+        source: .
+        target: "/home/ubuntu"
+        debug: true
+ 
+    - name: ✅ Verify Deployment
+      uses: appleboy/ssh-action@master
+      with:
+        host: ${{ secrets.EC2_HOST }}
+        username: ${{ secrets.EC2_USER }}
+        key: ${{ secrets.EC2_KEY }}
+        script: |
+          ls -la /home/ubuntu/pm2-testing/sample-node-project
+          cd /home/ubuntu/pm2-testing/sample-node-project
+          sudo npm install
+          sudo pm2 delete testing
+          sudo pm2 start npm --name "testing" -- start
+          sudo pm2 list
