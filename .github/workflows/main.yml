@@ -1,4 +1,4 @@
-name: 🚀 Deploy Code with Docker to EC2
+name: 🚀 Deploy Code with PM2 to EC2
 
 on:
   push:
@@ -23,7 +23,11 @@ jobs:
         mkdir -p ~/.ssh
         ssh-keyscan -H ${{ secrets.EC2_HOST }} >> ~/.ssh/known_hosts
 
-    - name: 🐳 Docker Build & Run on EC2
+    - name: 🚀 Deploy Code to EC2 (no tar issues)
+      run: |
+        rsync -avz --delete --exclude 'node_modules' ./ ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }}:/home/ubuntu/pm2-testing/sample-node-project
+
+    - name: ▶️ Start App with PM2 on EC2
       uses: appleboy/ssh-action@master
       with:
         host: ${{ secrets.EC2_HOST }}
@@ -31,9 +35,9 @@ jobs:
         key: ${{ secrets.EC2_KEY }}
         script: |
           cd /home/ubuntu/pm2-testing/sample-node-project
-          git pull origin master || true
-          sudo docker stop node-container || true
-          sudo docker rm node-container || true
-          sudo docker build -t node-app .
-          sudo docker run -d -p 3005:3005 --name node-container node-app
-          sudo docker ps
+          export PORT=3005
+          npm install
+          pm2 delete testing || true
+          pm2 start npm --name "testing" -- start
+          pm2 save
+          pm2 list
