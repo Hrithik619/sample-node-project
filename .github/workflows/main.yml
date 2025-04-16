@@ -1,40 +1,62 @@
-name: Deploy Code to EC2 with Docker + PM2
-
+name: Build, Push Vector Image
+ 
 on:
+
   push:
-    branches:
-      - master
+
+    branches: [ 'dev' ]
+
+  workflow_dispatch:
 
 jobs:
-  deploy:
+
+  build-image:
+
+    name: Build and Push Image to Registry
+
     runs-on: ubuntu-latest
 
+    environment: Production
+
+    permissions:
+
+      contents: read
+
+      packages: write
+
     steps:
-    - name: 🛎️ Checkout Code
-      uses: actions/checkout@v3
 
-    - name: 🚀 Deploy Code to EC2
-      uses: appleboy/scp-action@master
-      with:
-        host: ${{ secrets.EC2_HOST }}
-        username: ${{ secrets.EC2_USER }}
-        key: ${{ secrets.EC2_KEY }}
-        source: "."
-        target: "/home/ubuntu/pm2-testing/sample-node-project"
-        debug: true
-        rm: true  # clean target before copy
-        scp_ignore: ".scpignore"
+      - name: Checkout repository
 
-    - name: ▶️ Build & Start Docker with PM2 on EC2
-      uses: appleboy/ssh-action@master
-      with:
-        host: ${{ secrets.EC2_HOST }}
-        username: ${{ secrets.EC2_USER }}
-        key: ${{ secrets.EC2_KEY }}
-        script: |
-          cd /home/ubuntu/pm2-testing/sample-node-project
-          sudo docker stop node-container || true
-          sudo docker rm node-container || true
-          sudo docker build -t node-app .
-          sudo docker run -d -p 3005:3005 --name node-container node-app
-          sudo docker ps
+        uses: actions/checkout@v4
+
+      - name: Print the SHA
+
+        run: |
+
+          echo "${GITHUB_SHA}"
+
+      - name: Login to GitHub Container Registry
+
+        uses: docker/login-action@v3
+
+        with:
+
+          registry: ${{ secrets.CONTAINER_REGISTRY_URL }}
+
+          username: ${{ secrets.CONTAINER_REGISTRY_USER }}
+
+          password: ${{ secrets.CONTAINER_REGISTRY_PASSWORD }}
+
+      - name: Build and push Docker image for app-service
+
+        uses: docker/build-push-action@v5
+
+        with:
+
+          context: .
+
+          push: true
+
+          tags: ${{ secrets.CONTAINER_REGISTRY_URL }}/vector-replacement-backend/vector-backend:${{ github.sha }}
+ 
