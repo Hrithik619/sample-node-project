@@ -19,9 +19,11 @@ jobs:
         host: ${{ secrets.EC2_HOST }}
         username: ${{ secrets.EC2_USER }}
         key: ${{ secrets.EC2_KEY }}
-        source: .
+        source: "."
         target: "/home/ubuntu/pm2-testing/sample-node-project"
         debug: true
+        rm: true  # clean target before copy
+        scp_ignore: ".scpignore"
 
     - name: ▶️ Build & Start Docker with PM2 on EC2
       uses: appleboy/ssh-action@master
